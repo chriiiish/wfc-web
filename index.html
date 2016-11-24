@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>It's Christmas!</title>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+	<script src="christmas_v2.js"></script>
+	<script src="paperjs-v0.10.2/dist/paper-full.js"></script>
+	<style>
+		html, body, canvas{
+			width: 100%;
+			height: 100%;
+			overflow: hidden;
+			margin: 0;
+		}
+		html[resize], body[resize], canvas[resize]{
+			width: 100%;
+			height: 100%;
+		}
+		audio{
+			display:none;
+		}
+	</style>
+</head>
+<body onload="ready();">
+	<canvas id="theCanvas" resize="true" keepalive="true"></canvas>
+
+	<script>
+		// Holds the paperscript event listeners
+		window.globals = {
+			tree1listener: function(){},	// When Tree1 changes colours
+			tree2listener: function(){},	// When Tree2 ...
+			tree3listener: function(){},	// When Tree3 ...
+			devtreelistener: function() {},	// When DevTree ...
+			tree1: undefined,			// Tree1
+			tree2: undefined,			// Tree2
+			tree3: undefined,			// Tree3
+			devtree: undefined,			// Dev Tree
+			finishListeners: function(){}	//Adds the click listeners to the tree
+		};
+
+
+		var controller = undefined;
+		// Executed on Page load
+		function ready(){
+			controller = new ChristmasTreeController("<ip/hostname>", "<port>");
+
+			// When connected, create the trees
+			controller.connected = function(){
+				// var devtree = controller.CreateTree("Dev Tree", "devtree");
+				// devtree.OnChanged = window.globals.devtreelistener;
+				// window.globals.devtree = devtree;
+
+				var tonytree = controller.CreateTree("Tony's Tree", "tree1");
+				tonytree.OnChanged = window.globals.tree1listener;
+				window.globals.tree1 = tonytree;
+
+				var jinjintree = controller.CreateTree("Jinjin's Tree", "tree2");
+				jinjintree.OnChanged = window.globals.tree2listener;
+				window.globals.tree2 = jinjintree;
+
+				var lunchtree = controller.CreateTree("Lunch Room Tree", "tree3");
+				lunchtree.OnChanged = window.globals.tree3listener;
+				window.globals.tree3 = lunchtree;
+
+				globals.finishListeners();
+			}
+		}
+	</script>
+	<audio id="playa" preload="auto">
+		<source src="somgs/we-wish-you-a-merry-christmas.mp3" type="audio/mp3" id="audio_src" />
+	</audio>
+
+	<script type="text/paperscript" canvas="theCanvas">
+		// Create rezare logo
+		var rezarelogo = new Raster('rezarelogo');
+		rezarelogo.position = view.bounds.bottomRight - rezarelogo.size / 2 - [10,10];
+		rezarelogo.onMouseDown = function(event){
+			if(audio.paused)
+				audio.play();
+			else
+				audio.pause();
+			
+			localStorage.setItem("play", !audio.paused);
+		};
+
+
+		// Change the mouse to a click hand
+		rezarelogo.onMouseEnter = function(){
+			document.body.style.cursor = "pointer";
+		};
+		rezarelogo.onMouseLeave = function(){
+			document.body.style.cursor = "auto";
+		};
+
+		// All songs were taken from www.freexmasmp3.com
+		var songs = ["12-days-of-christmas", "away-in-a-manger", "carol-of-the-bells", "deck-the-halls", "o-christmas-tree", "silent-night", "we-wish-you-a-merry-christmas"];
+
+		// Get some songs pumping.
+		var audio = document.getElementById("playa");
+		var next_song = 0;
+
+		// Load the last played song
+		if(typeof(Storage) != "undefined" && localStorage.songid != undefined){
+			next_song = parseInt(localStorage.songid);
+			var audio_src = document.getElementById("audio_src");
+			audio_src.src = "somgs/" + songs[next_song] + ".mp3";
+			audio.load();
+			next_song++;
+			if(next_song == songs.length) next_song = 0;
+			localStorage.setItem("songid", next_song);
+		}
+		
+		// Handles whether to play music or not
+		if(typeof(Storage) != "undefined"){	
+			if(localStorage.play != undefined && localStorage.play == "true"){
+				audio.play();
+			}
+		}
+
+		// Tell it to load the next song when finished
+		$("#playa").bind("ended", function(){
+			var audio_src = document.getElementById("audio_src");
+			audio_src.src = "somgs/" + songs[next_song] + ".mp3";
+			audio.load();
+			audio.play();			
+			next_song++;
+			if(next_song == songs.length) next_song = 0;
+			localStorage.setItem("songid", next_song);		
+		});
+
+
+		
+		// On window resize move things around
+		window.addEventListener("resize", function(){
+			//background.bounds.size = [view.size.width, view.size.height];
+			rezarelogo.position = view.bounds.bottomRight - rezarelogo.size / 2 - [10,10];
+		});
+	</script>
+
+	<script type="text/paperscript" canvas="theCanvas" src="paperscripts/background.js"></script>
+	<script type="text/paperscript" canvas="theCanvas" src="paperscripts/snow.js"></script>
+	<script type="text/paperscript" canvas="theCanvas" src="paperscripts/tree.js"></script>
+
+
+	<img src="imgs/LogoRezare_212x124.png" alt="Rezare Logo" id="rezarelogo" />
+	<img src="imgs/tonybg.jpg" alt="Tony" id="tonybg" />
+	<img src="imgs/jinjinbg.jpg" alt="Jinjin" id="jinjinbg" />
+	<img src="imgs/lunchbg.jpg" alt="Lunch Room" id="lunchbg" />
+
+</body>
+</html>
